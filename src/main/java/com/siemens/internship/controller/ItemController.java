@@ -8,7 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,11 +29,18 @@ public class ItemController {
     }
 
     @PostMapping
-    public ResponseEntity<Item> createItem(@Valid @RequestBody Item item, BindingResult result) {
-        if (result.hasErrors()) {
-            return new ResponseEntity<>(null, HttpStatus.CREATED);
-        }
-        return new ResponseEntity<>(itemService.save(item), HttpStatus.BAD_REQUEST);
+    public ResponseEntity<Item> createItem(@Valid @RequestBody Item item) {
+        Item savedItem = itemService.save(item);
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(savedItem.getId())
+                .toUri();
+
+        return ResponseEntity
+                .created(location)
+                .body(savedItem);
     }
 
     @GetMapping("/{id}")
