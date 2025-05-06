@@ -36,8 +36,14 @@ public class ItemService {
         return itemRepository.save(item);
     }
 
-    public void deleteById(Long id) {
-        itemRepository.deleteById(id);
+    public boolean deleteById(Long id) {
+        //It would have also been possible to add another query method to the repository but for the purposes
+        //of this app 2 queries would suffice
+        if (itemRepository.existsById(id)) {
+            itemRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
 
