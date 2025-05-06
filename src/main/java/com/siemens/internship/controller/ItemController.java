@@ -22,8 +22,8 @@ public class ItemController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Item>> getAllItems() {
-        return new ResponseEntity<>(itemService.findAll(), HttpStatus.OK);
+    public List<Item> getAllItems() {
+        return itemService.findAll();
     }
 
     @PostMapping
