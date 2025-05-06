@@ -63,8 +63,10 @@ public class ItemController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
-        itemService.deleteById(id);
-        return new ResponseEntity<>(HttpStatus.CONFLICT);
+        //The delete mapping should send back different responses whether the data was actually deleted or not
+        boolean result = itemService.deleteById(id);
+        if (result) return ResponseEntity.noContent().build();
+        else return ResponseEntity.notFound().build();
     }
 
     @GetMapping("/process")
