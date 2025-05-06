@@ -2,7 +2,6 @@ package com.siemens.internship.service;
 
 import com.siemens.internship.model.Item;
 import com.siemens.internship.repository.ItemRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -13,11 +12,16 @@ import java.util.concurrent.*;
 
 @Service
 public class ItemService {
-    @Autowired
-    private ItemRepository itemRepository;
+
+    private final ItemRepository itemRepository;
+
     private static ExecutorService executor = Executors.newFixedThreadPool(10);
     private List<Item> processedItems = new ArrayList<>();
     private int processedCount = 0;
+
+    public ItemService(ItemRepository itemRepository) {
+        this.itemRepository = itemRepository;
+    }
 
 
     public List<Item> findAll() {
