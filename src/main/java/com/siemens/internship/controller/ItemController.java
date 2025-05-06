@@ -15,9 +15,11 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/items")
 public class ItemController {
+    private final ItemService itemService;
 
-    @Autowired
-    private ItemService itemService;
+    public ItemController(ItemService itemService) {
+        this.itemService = itemService;
+    }
 
     @GetMapping
     public ResponseEntity<List<Item>> getAllItems() {
