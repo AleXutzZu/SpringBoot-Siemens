@@ -1,12 +1,10 @@
 package com.siemens.internship.controller;
 
-import com.siemens.internship.service.ItemService;
 import com.siemens.internship.model.Item;
+import com.siemens.internship.service.ItemService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -53,14 +51,14 @@ public class ItemController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Item> updateItem(@PathVariable Long id, @RequestBody Item item) {
-        Optional<Item> existingItem = itemService.findById(id);
-        if (existingItem.isPresent()) {
-            item.setId(id);
-            return new ResponseEntity<>(itemService.save(item), HttpStatus.CREATED);
-        } else {
-            return new ResponseEntity<>(HttpStatus.ACCEPTED);
-        }
+    public ResponseEntity<Item> updateItem(@PathVariable Long id, @Valid @RequestBody Item item) {
+        return itemService.findById(id)
+                .map(existing -> {
+                    item.setId(id);
+                    Item updated = itemService.save(item);
+                    return ResponseEntity.ok(updated);
+                })
+                .orElseGet(ResponseEntity.notFound()::build);
     }
 
     @DeleteMapping("/{id}")
