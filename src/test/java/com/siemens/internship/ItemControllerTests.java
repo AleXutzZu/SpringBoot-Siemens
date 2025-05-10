@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.siemens.internship.model.Item;
 import com.siemens.internship.repository.ItemRepository;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +14,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -190,5 +192,26 @@ public class ItemControllerTests {
     void deleteItemNotFound() throws Exception {
         mockMvc.perform(delete("/api/items/999"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void processItems_shouldUpdateStatusesAndReturnProcessedItems() throws Exception {
+        itemRepository.saveAll(List.of(
+                new Item(null, "Item 1", "Desc", "PENDING", "user1@example.com"),
+                new Item(null, "Item 2", "Desc", "PENDING", "user2@example.com")
+        ));
+
+        MvcResult result = mockMvc.perform(get("/api/items/process"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseBody = result.getResponse().getContentAsString();
+        Item[] returnedItems = objectMapper.readValue(responseBody, Item[].class);
+
+        assertEquals(2, returnedItems.length);
+        assertTrue(Arrays.stream(returnedItems).allMatch(item -> "PROCESSED".equals(item.getStatus())));
+
+        List<Item> dbItems = itemRepository.findAll();
+        assertTrue(dbItems.stream().allMatch(item -> "PROCESSED".equals(item.getStatus())));
     }
 }
