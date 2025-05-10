@@ -11,6 +11,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.net.URI;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
 @RestController
 @RequestMapping("/api/items")
@@ -71,6 +72,10 @@ public class ItemController {
 
     @GetMapping("/process")
     public ResponseEntity<List<Item>> processItems() {
-        return new ResponseEntity<>(itemService.processItemsAsync(), HttpStatus.OK);
+        var processedItemsFuture = itemService.processItemsAsync();
+
+        var itemsList = processedItemsFuture.join();
+
+        return new ResponseEntity<>(itemsList, HttpStatus.OK);
     }
 }
