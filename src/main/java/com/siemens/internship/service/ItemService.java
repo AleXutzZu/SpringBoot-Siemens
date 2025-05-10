@@ -2,25 +2,28 @@ package com.siemens.internship.service;
 
 import com.siemens.internship.model.Item;
 import com.siemens.internship.repository.ItemRepository;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.stream.Collectors;
 
 @Service
 public class ItemService {
 
     private final ItemRepository itemRepository;
 
-    private static ExecutorService executor = Executors.newFixedThreadPool(10);
-    private List<Item> processedItems = new ArrayList<>();
-    private int processedCount = 0;
+    //Delegated the executor management to Spring
+    private final Executor executor;
 
-    public ItemService(ItemRepository itemRepository) {
+    public ItemService(ItemRepository itemRepository, @Qualifier("taskExecutor") Executor executor) {
         this.itemRepository = itemRepository;
+        this.executor = executor;
     }
 
 
@@ -58,42 +61,40 @@ public class ItemService {
      * Correct use of Spring's @Async annotation
      * Add appropriate comments explaining your changes and why they fix the issues
      * Write a brief explanation of what was wrong with the original implementation
-     *
+     * <p>
      * Hints
      * Consider how CompletableFuture composition can help coordinate multiple async operations
      * Think about appropriate thread-safe collections
      * Examine how errors are handled and propagated
      * Consider the interaction between Spring's @Async and CompletableFuture
      */
-    @Async
-    public List<Item> processItemsAsync() {
-
+    public CompletableFuture<List<Item>> processItemsAsync() {
         List<Long> itemIds = itemRepository.findAllIds();
 
-        for (Long id : itemIds) {
-            CompletableFuture.runAsync(() -> {
-                try {
-                    Thread.sleep(100);
+        List<CompletableFuture<Item>> futures = itemIds.stream()
+                .map(id -> CompletableFuture.supplyAsync(() -> {
+                    try {
+                        Thread.sleep(100);
 
-                    Item item = itemRepository.findById(id).orElse(null);
-                    if (item == null) {
-                        return;
+                        // Each task runs in its own thread
+                        Item item = itemRepository.findById(id).orElse(null);
+                        if (item == null) return null;
+
+                        item.setStatus("PROCESSED");
+                        return itemRepository.save(item);
+
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
                     }
+                }, executor))
+                .toList();
 
-                    processedCount++;
-
-                    item.setStatus("PROCESSED");
-                    itemRepository.save(item);
-                    processedItems.add(item);
-
-                } catch (InterruptedException e) {
-                    System.out.println("Error: " + e.getMessage());
-                }
-            }, executor);
-        }
-
-        return processedItems;
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(_v -> futures.stream()
+                        .map(CompletableFuture::join)
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList()));
     }
-
 }
+
 
